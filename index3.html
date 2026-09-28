@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yılan Oyunu - Geleceğin Teknolojileri</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            color: #4CAF50;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+
+        #score-board {
+            font-size: 20px;
+            margin-bottom: 15px;
+            background: #2a2a2a;
+            padding: 8px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        canvas {
+            border: 4px solid #4CAF50;
+            background-color: #111111;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            border-radius: 4px;
+        }
+
+        .instructions {
+            margin-top: 15px;
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="game-header">
+        <h1>Oyun Merkezi</h1>
+        <nav aria-label="Oyun menüsü">
+            <a href="index.html">Ana Sayfa</a>
+            <a href="index3.html" aria-current="page">Yılan Oyunu</a>
+        </nav>
+    </header>
+
+    <h1>Yılan Oyunu</h1>
+    <div id="score-board">Puan: <span id="score">0</span></div>
+    
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    
+    <div class="instructions">Yön Tuşları (Ok tuşları) ile yılanı hareket ettirebilirsin.</div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        let snake = [
+            { x: 10, y: 10 },
+            { x: 9, y: 10 },
+            { x: 8, y: 10 }
+        ];
+        
+        let food = { x: 5, y: 5 };
+        let dx = 1;
+        let dy = 0;
+        let score = 0;
+        let gameInterval;
+        let changingDirection = false; // Tuş spamını engellemek için
+
+        // Oyunu başlat
+        startGame();
+
+        function startGame() {
+            gameInterval = setInterval(main, 100);
+            generateFood();
+        }
+
+        function main() {
+            if (hasGameEnded()) {
+                clearInterval(gameInterval);
+                alert("Oyun Bitti! Skorun: " + score);
+                document.location.reload();
+                return;
+            }
+
+            changingDirection = false;
+            clearCanvas();
+            drawFood();
+            moveSnake();
+            drawSnake();
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = "#111111";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawSnake() {
+            snake.forEach((part, index) => {
+                ctx.fillStyle = index === 0 ? "#4CAF50" : "#8BC34A";
+                ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
+            });
+        }
+
+        function moveSnake() {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            snake.unshift(head);
+
+            const hasEatenFood = snake[0].x === food.x && snake[0].y === food.y;
+            if (hasEatenFood) {
+                score += 10;
+                document.getElementById("score").innerText = score;
+                generateFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function generateFood() {
+            food.x = Math.floor(Math.random() * tileCount);
+            food.y = Math.floor(Math.random() * tileCount);
+
+            // Yem yılanın üzerinde çıkmasın
+            snake.forEach(part => {
+                const has_eaten = part.x === food.x && part.y === food.y;
+                if (has_eaten) generateFood();
+            });
+        }
+
+        function drawFood() {
+            ctx.fillStyle = "#FF5722";
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+        }
+
+        function hasGameEnded() {
+            for (let i = 4; i < snake.length; i++) {
+                if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
+            }
+            const hitLeftWall = snake[0].x < 0;
+            const hitRightWall = snake[0].x >= tileCount;
+            const hitToptWall = snake[0].y < 0;
+            const hitBottomWall = snake[0].y >= tileCount;
+
+            return hitLeftWall || hitRightWall || hitToptWall || hitBottomWall;
+        }
+
+        // Klavye Kontrolleri
+        document.addEventListener("keydown", changeDirection);
+
+        function changeDirection(event) {
+            const keyPressed = event.keyCode;
+            const LEFT = 37;
+            const UP = 38;
+            const RIGHT = 39;
+            const DOWN = 40;
+
+            if (changingDirection) return;
+
+            const goingUp = dy === -1;
+            const goingDown = dy === 1;
+            const goingRight = dx === 1;
+            const goingLeft = dx === -1;
+
+            if (keyPressed === LEFT && !goingRight) {
+                dx = -1;
+                dy = 0;
+                changingDirection = true;
+            }
+            if (keyPressed === UP && !goingDown) {
+                dx = 0;
+                dy = -1;
+                changingDirection = true;
+            }
+            if (keyPressed === RIGHT && !goingLeft) {
+                dx = 1;
+                dy = 0;
+                changingDirection = true;
+            }
+            if (keyPressed === DOWN && !goingUp) {
+                dx = 0;
+                dy = 1;
+                changingDirection = true;
+            }
+        }
+    </script>
+</body>
+</html>
